@@ -31,9 +31,7 @@ typedef struct {
     List *receiveList;
 } thread_args;
 
-void freeList(void* item) {
-    return;
-}
+void freeList(void*) {}
 
 
 void* keyboardInputThread(void* arg) {
@@ -52,9 +50,6 @@ void* keyboardInputThread(void* arg) {
         pthread_mutex_lock(&sendListMutex);
 
         //critical section
-        
-        // printf("in keyboard input thread---------------------------\n");
-        // printf("keyboard input: %s\n", message);
 
         // Add the message to the end of sendList 
         List_append(arguments->sendList, message); 
@@ -64,6 +59,18 @@ void* keyboardInputThread(void* arg) {
 
         // Unlock the mutex after modifying the list
         pthread_mutex_unlock(&sendListMutex);
+
+        // check if the message is "!"
+        // checks after since we want to send the message before exiting
+        if (strcmp(message, "!") == 0) {
+            printf("Exiting...\n");
+            //free the sendList
+            List_free(arguments->sendList, freeList);
+            //free the receiveList
+            List_free(arguments->receiveList, freeList);
+            //exit the program
+            exit(0);
+        }
     }
 
     // Optionally handle cleanup and termination signal here
@@ -189,6 +196,16 @@ void* screenOutputThread(void* args) {
         if (message != NULL) {
             printf("%s\n", message);
             // free(message); // Don't forget to free the memory
+        }
+
+        if (strcmp(message, "!") == 0) {
+            printf("Exiting...\n");
+            //free the sendList
+            List_free(arguments->sendList, freeList);
+            //free the receiveList
+            List_free(arguments->receiveList, freeList);
+            //exit the program
+            exit(0);
         }
     }
 
