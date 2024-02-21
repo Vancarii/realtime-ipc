@@ -220,9 +220,13 @@ int main(int argc, char *argv[]) {
     }
 
     printf("Starting s-talk...\n");
-    printf("Local port: %s\n", argv[1]);
-    printf("Remote IP: %s\n", argv[2]);
-    printf("Remote port: %s\n", argv[3]);
+    printf("┍――――――――――――――――――――――――――――――――――┑\n");
+    printf("|   Local port: %s\n", argv[1]);
+    printf("|   Remote IP: %s\n", argv[2]);
+    printf("|   Remote port: %s\n", argv[3]);
+    printf("┕――――――――――――――――――――――――――――――――――┙\n");
+    printf("Press ! to exit\n");
+    printf("start of chat:\n");
 
     pthread_mutex_init(&sendListMutex, NULL);
     pthread_mutex_init(&receiveListMutex, NULL);
