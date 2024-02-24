@@ -10,8 +10,8 @@
 #include "list.h"
 
 
-#define PORT 12345
-#define BUFFER_SIZE 1024
+// #define PORT 12345
+// #define BUFFER_SIZE 1024
 
 // Assume List and related functions are implemented
 
@@ -31,7 +31,9 @@ typedef struct {
     List *receiveList;
 } thread_args;
 
-void freeList(void*) {}
+void freeList(void* item) {
+    free(item);
+}
 
 
 void* keyboardInputThread(void* arg) {
@@ -68,6 +70,7 @@ void* keyboardInputThread(void* arg) {
             List_free(arguments->sendList, freeList);
             //free the receiveList
             List_free(arguments->receiveList, freeList);
+
             //exit the program
             exit(0);
         }
@@ -99,48 +102,48 @@ void* udpOutputThread(void* args) {
     servaddr.sin_addr.s_addr = inet_addr(arguments->remoteIP);
     servaddr.sin_port = htons(arguments->remotePort);
 
-        while (1) {
-            pthread_mutex_lock(&sendListMutex);
+    while (1) {
+        pthread_mutex_lock(&sendListMutex);
 
-            // Wait for the list to have messages
-            while (arguments->sendList->head == NULL) {
-                pthread_cond_wait(&sendListNotEmptyCond, &sendListMutex);
-            }
-
-
-            char* message = List_trim(arguments->sendList); // Implement this function based on your list structure
-
-            pthread_mutex_unlock(&sendListMutex);
-
-            // Send the message
-            if (message != NULL) {
-                sendto(sockfd, message, strlen(message), 0, (const struct sockaddr*)&servaddr, sizeof(servaddr));
-                // free(message); // Don't forget to free the memory
-            }
+        // Wait for the list to have messages
+        while (arguments->sendList->head == NULL) {
+            pthread_cond_wait(&sendListNotEmptyCond, &sendListMutex);
         }
 
-        close(sockfd);
-        return NULL;
+
+        char* message = List_trim(arguments->sendList);
+
+        pthread_mutex_unlock(&sendListMutex);
+
+        // Send the message
+        if (message != NULL) {
+            sendto(sockfd, message, strlen(message), 0, (const struct sockaddr*)&servaddr, sizeof(servaddr));
+            // free(message); // Don't forget to free the memory
+        }
     }
 
-    void* udpInputThread(void* args) {
-        int sockfd;
-        struct sockaddr_in servaddr, cliaddr;
+    close(sockfd);
+    return NULL;
+}
 
-        // Creating socket file descriptor
-        if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-            perror("socket creation failed");
-            exit(EXIT_FAILURE);
-        }
+void* udpInputThread(void* args) {
+    int sockfd;
+    struct sockaddr_in servaddr, cliaddr;
 
-        memset(&servaddr, 0, sizeof(servaddr));
-        memset(&cliaddr, 0, sizeof(cliaddr));
+    // Creating socket file descriptor
+    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+        perror("socket creation failed");
+        exit(EXIT_FAILURE);
+    }
 
-        // Filling server information
-        servaddr.sin_family = AF_INET; // IPv4
-        servaddr.sin_addr.s_addr = INADDR_ANY;
-        thread_args* arguments = (thread_args*)args;
-        servaddr.sin_port = htons(arguments->localPort);
+    memset(&servaddr, 0, sizeof(servaddr));
+    memset(&cliaddr, 0, sizeof(cliaddr));
+
+    // Filling server information
+    servaddr.sin_family = AF_INET; // IPv4
+    servaddr.sin_addr.s_addr = INADDR_ANY;
+    thread_args* arguments = (thread_args*)args;
+    servaddr.sin_port = htons(arguments->localPort);
 
     // Bind the socket with the server address
     if (bind(sockfd, (const struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) {
@@ -155,11 +158,13 @@ void* udpOutputThread(void* args) {
         int n = recvfrom(sockfd, (char *)buffer, 1024, 0, ( struct sockaddr *) &cliaddr, &len);
         buffer[n] = '\0'; // Null-terminate the received string
 
+        char* message = strdup(buffer); // Duplicate the string to store in the list
+
         // Lock the mutex before accessing the shared list
         pthread_mutex_lock(&receiveListMutex);
 
         // Add the received message to the end of receiveList
-        List_append(arguments->receiveList, buffer); 
+        List_append(arguments->receiveList, message); 
 
         // Signal any threads waiting for messages that the list is not empty
         pthread_cond_signal(&receiveListNotEmptyCond);
@@ -204,9 +209,12 @@ void* screenOutputThread(void* args) {
             List_free(arguments->sendList, freeList);
             //free the receiveList
             List_free(arguments->receiveList, freeList);
+
+            free(message);
             //exit the program
             exit(0);
         }
+        free(message);
     }
 
     return NULL;
@@ -262,6 +270,8 @@ int main(int argc, char *argv[]) {
     pthread_mutex_destroy(&receiveListMutex);
     pthread_cond_destroy(&sendListNotEmptyCond);
     pthread_cond_destroy(&receiveListNotEmptyCond);
+
+    free(args);
 
     List_free(args->sendList, freeList);
     List_free(args->receiveList, freeList);
