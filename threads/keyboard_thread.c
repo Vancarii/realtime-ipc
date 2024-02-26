@@ -17,7 +17,7 @@ static char* keyboardMessage = NULL;
 
 static pthread_t keyboard_thread;
 
-void* keyboardInputThread(void*) {
+void* keyboardInputThread(void* unused) {
     char inputBuffer[1024]; // Buffer to hold input from the keyboard
 
     while (1) {

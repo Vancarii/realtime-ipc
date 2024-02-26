@@ -12,7 +12,7 @@ static pthread_mutex_t receiveListMutex;
 static pthread_cond_t receiveListNotEmptyCond;
 
 
-void* screenOutputThread(void*) {
+void* screenOutputThread(void* unused) {
 
     while (1) {
 
