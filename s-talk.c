@@ -17,7 +17,7 @@
 
 
 typedef struct {
-    char *remoteIP;
+    char *remoteHostname;
     int remotePort;
     int localPort;
 } thread_args;
@@ -34,7 +34,7 @@ int main(int argc, char *argv[]) {
 
     thread_args *args = malloc(sizeof *args);
     args->localPort = atoi(argv[1]);
-    args->remoteIP = argv[2];
+    args->remoteHostname = argv[2];
     args->remotePort = atoi(argv[3]);
 
 

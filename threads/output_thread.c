@@ -7,6 +7,10 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h> 
+
 #include "output_thread.h"
 #include "../list/list.h"
 #include "../shutdown_manager/shutdown_manager.h"
@@ -20,7 +24,7 @@ static pthread_cond_t sendListNotEmptyCond;
 
 
 typedef struct {
-    char *remoteIP;
+    char *remoteHostname;
     int remotePort;
     int localPort;
 } thread_args;
@@ -28,7 +32,10 @@ typedef struct {
 
 void* udpOutputThread(void* args) {
     int sockfd;
-    struct sockaddr_in servaddr;
+    // struct sockaddr_in servaddr;
+
+    struct addrinfo hints, *res;
+    int status;
 
     // Creating socket file descriptor
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
@@ -36,15 +43,34 @@ void* udpOutputThread(void* args) {
         exit(EXIT_FAILURE);
     }
 
-    memset(&servaddr, 0, sizeof(servaddr));
+    // memset(&servaddr, 0, sizeof(servaddr));
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_DGRAM;
+
 
     // Filling server information
-    servaddr.sin_family = AF_INET; // IPv4
+    // servaddr.sin_family = AF_INET; // IPv4
 
     thread_args* arguments = (thread_args*)args;
 
-    servaddr.sin_addr.s_addr = inet_addr(arguments->remoteIP);
-    servaddr.sin_port = htons(arguments->remotePort);
+    char portStr[6];
+    sprintf(portStr, "%d", arguments->remotePort);
+
+    if ((status = getaddrinfo(arguments->remoteHostname, portStr, &hints, &res)) != 0) {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(status));
+        exit(EXIT_FAILURE);
+    }
+
+    // Creating socket file descriptor
+    if ((sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) < 0) {
+        perror("socket creation failed");
+        exit(EXIT_FAILURE);
+    }
+
+
+    // servaddr.sin_addr.s_addr = inet_addr(arguments->remoteHostname);
+    // servaddr.sin_port = htons(arguments->remotePort);
 
     while (1) {
 
@@ -67,7 +93,8 @@ void* udpOutputThread(void* args) {
 
         // Send the message
         if (message != NULL) {
-            sendto(sockfd, message, strlen(message), 0, (const struct sockaddr*)&servaddr, sizeof(servaddr));
+            // sendto(sockfd, message, strlen(message), 0, (const struct sockaddr*)&servaddr, sizeof(servaddr));
+            sendto(sockfd, message, strlen(message), 0, res->ai_addr, res->ai_addrlen);
 
             free(message);
 
@@ -79,6 +106,7 @@ void* udpOutputThread(void* args) {
 
     }
 
+    freeaddrinfo(res);
     close(sockfd);
     return NULL;
 }

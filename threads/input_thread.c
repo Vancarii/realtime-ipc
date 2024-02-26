@@ -20,7 +20,7 @@ static pthread_t input_thread;
 static char* inputMessage = NULL;
 
 typedef struct {
-    char *remoteIP;
+    char *remoteHostname;
     int remotePort;
     int localPort;
 } thread_args;
