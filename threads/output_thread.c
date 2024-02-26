@@ -69,16 +69,14 @@ void* udpOutputThread(void* args) {
         // Send the message
         if (message != NULL) {
             sendto(sockfd, message, strlen(message), 0, (const struct sockaddr*)&servaddr, sizeof(servaddr));
-            // free(message); // Don't forget to free the memory
+            
+            free(message);
 
             if (should_shutdown()){
                 printf("2. output thread should shutdown...\n");
-                free(message);
                 return NULL;
             }
 
-
-            free(message);
         }
 
     }

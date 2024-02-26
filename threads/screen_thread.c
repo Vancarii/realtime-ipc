@@ -40,14 +40,14 @@ void* screenOutputThread(void*) {
         // Display the message
         if (message != NULL) {
             printf("%s\n", message);
+            
+            free(message);
 
             if (should_shutdown()){
                 printf("2. screen thread should shutdown...\n");
-                free(message);
                 return NULL;
             }
 
-            free(message);
         }
 
     }

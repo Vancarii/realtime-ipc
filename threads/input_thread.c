@@ -70,7 +70,6 @@ void* inputThread(void* args) {
 
         if (strcmp(inputMessage, "!") == 0){
             printf("3. input thread should shutdown...\n");
-            // pthread_cond_signal(&sendListNotEmptyCond);
             output_condition_signal();
             screen_condition_signal();
             signal_shutdown();
@@ -90,12 +89,10 @@ void input_thread_init(void* args){
 
 
 void input_thread_cleanup(){
-    free(inputMessage);
+    // dont free inputMessage here, it is freed in screen_thread
 
     pthread_cancel(input_thread);
     pthread_join(input_thread, NULL);
-
-
 
 }
 

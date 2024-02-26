@@ -58,7 +58,7 @@ void keyboard_thread_init()
 
 void keyboard_thread_cleanup()
 {
-    free(keyboardMessage);
+    // dont free keyboardMessage here, it is freed in output_thread
     pthread_cancel(keyboard_thread);
     pthread_join(keyboard_thread, NULL);
 }
