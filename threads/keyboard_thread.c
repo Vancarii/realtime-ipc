@@ -10,8 +10,8 @@
 
 #include "output_thread.h"
 #include "screen_thread.h"
-
 #include "../shutdown_manager/shutdown_manager.h"
+
 
 static char* keyboardMessage = NULL;
 

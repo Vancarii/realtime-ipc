@@ -3,9 +3,6 @@
 
 #include <pthread.h>
 
-
-void freeList(void* item);
-
 void* udpOutputThread(void* args);
 
 void output_signal_append_message(char* keyboardMessage);

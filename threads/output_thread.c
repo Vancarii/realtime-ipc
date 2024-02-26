@@ -1,5 +1,3 @@
-#include "output_thread.h"
-
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,8 +7,8 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
+#include "output_thread.h"
 #include "../list/list.h"
-
 #include "../shutdown_manager/shutdown_manager.h"
 
 static pthread_t output_thread;
@@ -26,11 +24,6 @@ typedef struct {
     int remotePort;
     int localPort;
 } thread_args;
-
-
-void freeList(void* item) {
-    free(item);
-}
 
 
 void* udpOutputThread(void* args) {
@@ -135,7 +128,7 @@ void output_thread_cleanup()
     pthread_mutex_destroy(&sendListMutex);
     pthread_cond_destroy(&sendListNotEmptyCond);
 
-    List_free(sendList, freeList);
+    List_free(sendList, free);
 
     pthread_cancel(output_thread);
     pthread_join(output_thread, NULL);

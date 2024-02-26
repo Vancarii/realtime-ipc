@@ -1,11 +1,7 @@
 #include "screen_thread.h"
-
 #include <stdio.h>
-
 #include <stdlib.h>
-
 #include "../list/list.h"
-
 #include "../shutdown_manager/shutdown_manager.h"
 
 static pthread_t screen_thread;
