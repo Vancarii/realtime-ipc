@@ -37,7 +37,6 @@ void* keyboardInputThread(void*) {
             output_signal_append_message(keyboardMessage);
 
             if (strcmp(keyboardMessage, "!") == 0){
-                printf("keyboard thread should shutdown...\n");
                 output_condition_signal();
                 screen_condition_signal();
                 signal_shutdown();

@@ -23,7 +23,6 @@ void* screenOutputThread(void*) {
         while (receiveList->head == NULL) {
 
             if (should_shutdown()){
-                printf("1. screen thread should shutdown...\n");
                 return NULL;
             }
 
@@ -39,12 +38,12 @@ void* screenOutputThread(void*) {
 
         // Display the message
         if (message != NULL) {
-            printf("%s\n", message);
-            
+            fputs(message, stdout);
+            fputs("\n", stdout);
+
             free(message);
 
             if (should_shutdown()){
-                printf("2. screen thread should shutdown...\n");
                 return NULL;
             }
 

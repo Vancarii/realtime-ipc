@@ -54,7 +54,6 @@ void* udpOutputThread(void* args) {
         while (sendList->head == NULL) {
 
             if (should_shutdown()){
-                printf("1. output thread should shutdown...\n");
                 return NULL;
             }
 
@@ -69,11 +68,10 @@ void* udpOutputThread(void* args) {
         // Send the message
         if (message != NULL) {
             sendto(sockfd, message, strlen(message), 0, (const struct sockaddr*)&servaddr, sizeof(servaddr));
-            
+
             free(message);
 
             if (should_shutdown()){
-                printf("2. output thread should shutdown...\n");
                 return NULL;
             }
 

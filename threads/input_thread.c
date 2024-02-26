@@ -69,7 +69,6 @@ void* inputThread(void* args) {
         screen_signal_append_message(inputMessage);
 
         if (strcmp(inputMessage, "!") == 0){
-            printf("3. input thread should shutdown...\n");
             output_condition_signal();
             screen_condition_signal();
             signal_shutdown();

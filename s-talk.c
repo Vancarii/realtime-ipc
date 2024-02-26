@@ -30,15 +30,6 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    printf("Starting s-talk...\n");
-    printf("┍――――――――――――――――――――――――――――――――――┑\n");
-    printf("|   Local port: %s\n", argv[1]);
-    printf("|   Remote IP: %s\n", argv[2]);
-    printf("|   Remote port: %s\n", argv[3]);
-    printf("┕――――――――――――――――――――――――――――――――――┙\n");
-    printf("Press ! to exit\n");
-    printf("start of chat:\n");
-
     init_shutdown_manager();
 
     thread_args *args = malloc(sizeof *args);
@@ -65,9 +56,6 @@ int main(int argc, char *argv[]) {
 
     screen_thread_cleanup();
     input_thread_cleanup();
-
-
-    printf("Exiting...\n");
     
     cleanup_shutdown_manager();
 
