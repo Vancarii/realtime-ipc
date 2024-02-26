@@ -15,9 +15,7 @@ void init_shutdown_manager() {
 void waitFor_shutdown() {
     pthread_mutex_lock(&shutdownMutex);
     while (!shutdown_flag) {
-        printf("Waiting for broadcast...\n"); 
         pthread_cond_wait(&shutdownCond, &shutdownMutex);
-        printf("received broadcast \n"); 
     }
     pthread_mutex_unlock(&shutdownMutex);
 }
@@ -25,13 +23,7 @@ void waitFor_shutdown() {
 void signal_shutdown() {
     pthread_mutex_lock(&shutdownMutex);
     shutdown_flag = 1;
-    // printf("broadcast cond var...\n");
-    int ret = pthread_cond_broadcast(&shutdownCond);
-    if (ret == 0) {
-        printf("Broadcast sent successfully.\n");
-    } else {
-        printf("Failed to send broadcast. Error: %d\n", ret);
-    }
+    pthread_cond_broadcast(&shutdownCond);
     pthread_mutex_unlock(&shutdownMutex);
 }
 
