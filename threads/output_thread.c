@@ -22,9 +22,6 @@ static List *sendList;
 static pthread_mutex_t sendListMutex;
 static pthread_cond_t sendListNotEmptyCond;
 
-struct addrinfo hints, *res;
-
-
 
 typedef struct {
     char *remoteHostname;
@@ -37,7 +34,7 @@ void* udpOutputThread(void* args) {
     int sockfd;
     // struct sockaddr_in servaddr;
 
-    // struct addrinfo hints, *res;
+    struct addrinfo hints, *res;
     int status;
 
     // Creating socket file descriptor
@@ -66,10 +63,10 @@ void* udpOutputThread(void* args) {
     }
 
     // Creating socket file descriptor
-    if ((sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) < 0) {
-        perror("socket creation failed");
-        exit(EXIT_FAILURE);
-    }
+    // if ((sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) < 0) {
+    //     perror("socket creation failed");
+    //     exit(EXIT_FAILURE);
+    // }
 
 
     // servaddr.sin_addr.s_addr = inet_addr(arguments->remoteHostname);
@@ -83,6 +80,8 @@ void* udpOutputThread(void* args) {
         while (sendList->head == NULL) {
 
             if (should_shutdown()){
+                freeaddrinfo(res);
+                close(sockfd);
                 return NULL;
             }
 
@@ -102,6 +101,8 @@ void* udpOutputThread(void* args) {
             free(message);
 
             if (should_shutdown()){
+                freeaddrinfo(res);
+                close(sockfd);
                 return NULL;
             }
 
@@ -109,7 +110,7 @@ void* udpOutputThread(void* args) {
 
     }
 
-    // freeaddrinfo(res);
+    freeaddrinfo(res);
     close(sockfd);
     return NULL;
 }
@@ -152,7 +153,7 @@ void output_thread_init(void *args)
 
 void output_thread_cleanup()
 {
-    freeaddrinfo(res);
+    // freeaddrinfo(res);
 
 
     pthread_mutex_destroy(&sendListMutex);

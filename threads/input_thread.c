@@ -25,6 +25,7 @@ typedef struct {
     int localPort;
 } thread_args;
 
+// int sockfd;
 
 void* inputThread(void* args) {
     int sockfd;
@@ -78,6 +79,7 @@ void* inputThread(void* args) {
     }
 
     close(sockfd);
+
     return NULL;
 }
 
