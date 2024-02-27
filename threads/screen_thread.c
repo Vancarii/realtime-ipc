@@ -88,12 +88,12 @@ void screen_thread_init(){
 }
 void screen_thread_cleanup(){
 
-    List_free(receiveList, free);
+    pthread_join(screen_thread, NULL);
 
     pthread_mutex_destroy(&receiveListMutex);
     pthread_cond_destroy(&receiveListNotEmptyCond);
 
-    pthread_join(screen_thread, NULL);
+    List_free(receiveList, free);
 
 }
 

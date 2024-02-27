@@ -155,12 +155,15 @@ void output_thread_cleanup()
 {
     // freeaddrinfo(res);
 
+    pthread_cond_broadcast(&sendListNotEmptyCond);
+
+
+    pthread_cancel(output_thread);
+    pthread_join(output_thread, NULL);
 
     pthread_mutex_destroy(&sendListMutex);
     pthread_cond_destroy(&sendListNotEmptyCond);
 
     List_free(sendList, free);
 
-    pthread_cancel(output_thread);
-    pthread_join(output_thread, NULL);
 }
