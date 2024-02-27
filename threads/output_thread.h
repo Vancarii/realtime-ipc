@@ -10,6 +10,7 @@ void output_signal_append_message(char* keyboardMessage);
 void output_condition_signal();
 
 void output_thread_init(void *args);
+
 void output_thread_cleanup();
 
 #endif

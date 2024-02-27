@@ -1,5 +1,6 @@
 {
-    "files.associations": {
-        "pthread.h": "c"
-    }
+  "files.associations": {
+    "pthread.h": "c",
+    "shutdown_manager.h": "c"
+  }
 }

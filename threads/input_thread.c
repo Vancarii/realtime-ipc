@@ -7,10 +7,8 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
-
 #include "screen_thread.h"
 #include "output_thread.h"
-
 #include "../list/list.h"
 #include "../shutdown_manager/shutdown_manager.h"
 
@@ -25,13 +23,16 @@ typedef struct {
     int localPort;
 } thread_args;
 
-// int sockfd;
 
+// All thread operations 
+// This thread is a socket that receives from the UDP output thread
+// once messages are received, they are stored in the list
+// if the message is "!", the shutdown signal is sent
+// and the thread is terminated
 void* inputThread(void* args) {
     int sockfd;
     struct sockaddr_in servaddr, cliaddr;
 
-    // Creating socket file descriptor
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
         perror("socket creation failed");
         exit(EXIT_FAILURE);
@@ -41,12 +42,12 @@ void* inputThread(void* args) {
     memset(&cliaddr, 0, sizeof(cliaddr));
 
     // Filling server information
-    servaddr.sin_family = AF_INET; // IPv4
+    servaddr.sin_family = AF_INET;
     servaddr.sin_addr.s_addr = INADDR_ANY;
     thread_args* arguments = (thread_args*)args;
     servaddr.sin_port = htons(arguments->localPort);
 
-    // Bind the socket with the server address
+    // Binding the socket 
     if (bind(sockfd, (const struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) {
         perror("bind failed");
         exit(EXIT_FAILURE);
@@ -55,20 +56,30 @@ void* inputThread(void* args) {
     while (1) {
 
         char buffer[1024];
-        socklen_t len = sizeof(cliaddr);  //len is value/resuslt
+        socklen_t len = sizeof(cliaddr);
 
         int n = recvfrom(sockfd, (char *)buffer, 1024, 0, ( struct sockaddr *) &cliaddr, &len);
 
-        buffer[n] = '\0'; // Null-terminate the received string
+        buffer[n] = '\0';
 
-        inputMessage = strdup(buffer); // Duplicate the string to store in the list
+        // copies the message to a new string
+        inputMessage = strdup(buffer);
+        // null check
         if (inputMessage == NULL) {
             perror("strdup");
             return NULL;
         }
 
+        // calls the screen thread to append the message to the list
+        // function is written in the screen module so that the list and 
+        // mutexes are encapsulated inside of screen module and not easily changed
+        // here in this thread by accident
         screen_signal_append_message(inputMessage);
 
+        // end case termination
+        // this also signals the output and screen threads to be unblocked 
+        // and continue their process so that they can check the shutdown flag
+        // then signal the shutdown
         if (strcmp(inputMessage, "!") == 0){
             output_condition_signal();
             screen_condition_signal();
@@ -83,17 +94,18 @@ void* inputThread(void* args) {
     return NULL;
 }
 
+// initialization 
 void input_thread_init(void* args){
     pthread_create(&input_thread, NULL, inputThread, args);
-
 }
 
 
 void input_thread_cleanup(){
     // dont free inputMessage here, it is freed in screen_thread
 
+    // cancel the thread since there is a system call
+    // pthread_cancel is used to cancel the system call and cancel the thread
     pthread_cancel(input_thread);
     pthread_join(input_thread, NULL);
-
 }
 

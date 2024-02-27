@@ -6,6 +6,7 @@
 
 static pthread_t screen_thread;
 
+// list to be shared by this thread and the UDP input Thread
 static List *receiveList;
 
 static pthread_mutex_t receiveListMutex;
@@ -16,7 +17,6 @@ void* screenOutputThread(void* unused) {
 
     while (1) {
 
-        // Lock the mutex before accessing the shared list
         pthread_mutex_lock(&receiveListMutex);
     
         // Wait for the list to have messages
@@ -29,14 +29,13 @@ void* screenOutputThread(void* unused) {
             pthread_cond_wait(&receiveListNotEmptyCond, &receiveListMutex);
         }
 
-        // Assuming list_remove returns a dynamically allocated string
-        // that needs to be freed after use
+        // Remove the most recently appended message from the list
         char* message = List_trim(receiveList);
 
-        // Unlock the mutex after removing the message from the list
         pthread_mutex_unlock(&receiveListMutex);
 
         // Display the message
+        // free the message and check for shutdown signal
         if (message != NULL) {
             fputs(message, stdout);
             fputs("\n", stdout);
@@ -55,9 +54,10 @@ void* screenOutputThread(void* unused) {
 }
 
 
-
+// this function is called by the UDP input Thread to signal that
+// there is something to put onto the list
+// and this function appends the message and changes the condition
 void screen_signal_append_message(char* inputMessage) {
-            // Lock the mutex before accessing the shared list
     pthread_mutex_lock(&receiveListMutex);
     {
         // Add the received message to the end of receiveList
@@ -66,16 +66,19 @@ void screen_signal_append_message(char* inputMessage) {
         // Signal any threads waiting for messages that the list is not empty
         pthread_cond_signal(&receiveListNotEmptyCond);
     }
-    // Unlock the mutex after modifying the list
+
     pthread_mutex_unlock(&receiveListMutex);
 }
 
+// this function is called by the output threads signal that
+// it should continue its process since we are shutting down and so that
+// this thread can check the shutdown condition
 void screen_condition_signal() {
     pthread_cond_signal(&receiveListNotEmptyCond);
 }
 
 
-
+// initialization
 void screen_thread_init(){
 
     receiveList = List_create();
@@ -86,6 +89,8 @@ void screen_thread_init(){
     pthread_create(&screen_thread, NULL, screenOutputThread, NULL);
 
 }
+
+// cleanup
 void screen_thread_cleanup(){
 
     pthread_join(screen_thread, NULL);

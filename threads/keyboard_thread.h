@@ -6,6 +6,7 @@
 void* keyboardInputThread(void*);
 
 void keyboard_thread_init();
+
 void keyboard_thread_cleanup();
 
 #endif

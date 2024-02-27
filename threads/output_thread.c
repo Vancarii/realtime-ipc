@@ -6,22 +6,20 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
-
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h> 
-
 #include "output_thread.h"
 #include "../list/list.h"
 #include "../shutdown_manager/shutdown_manager.h"
 
 static pthread_t output_thread;
 
+// list to be shared by UDP output and keyboard thread
 static List *sendList;
 
 static pthread_mutex_t sendListMutex;
 static pthread_cond_t sendListNotEmptyCond;
-
 
 typedef struct {
     char *remoteHostname;
@@ -32,25 +30,18 @@ typedef struct {
 
 void* udpOutputThread(void* args) {
     int sockfd;
-    // struct sockaddr_in servaddr;
 
     struct addrinfo hints, *res;
     int status;
 
-    // Creating socket file descriptor
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
         perror("socket creation failed");
         exit(EXIT_FAILURE);
     }
 
-    // memset(&servaddr, 0, sizeof(servaddr));
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_DGRAM;
-
-
-    // Filling server information
-    // servaddr.sin_family = AF_INET; // IPv4
 
     thread_args* arguments = (thread_args*)args;
 
@@ -61,16 +52,6 @@ void* udpOutputThread(void* args) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(status));
         exit(EXIT_FAILURE);
     }
-
-    // Creating socket file descriptor
-    // if ((sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) < 0) {
-    //     perror("socket creation failed");
-    //     exit(EXIT_FAILURE);
-    // }
-
-
-    // servaddr.sin_addr.s_addr = inet_addr(arguments->remoteHostname);
-    // servaddr.sin_port = htons(arguments->remotePort);
 
     while (1) {
 
@@ -94,12 +75,17 @@ void* udpOutputThread(void* args) {
 
 
         // Send the message
+        // make sure you free the message after sending it
+        // this message also points to the same memory location as the keyboardMessage
+        // pointer in the keyboard thread file
+        // so we free it here and not in keyboard file
         if (message != NULL) {
-            // sendto(sockfd, message, strlen(message), 0, (const struct sockaddr*)&servaddr, sizeof(servaddr));
             sendto(sockfd, message, strlen(message), 0, res->ai_addr, res->ai_addrlen);
 
             free(message);
 
+            // check for shutdown signal
+            // make sure to free allocated and close the socket if returning
             if (should_shutdown()){
                 freeaddrinfo(res);
                 close(sockfd);
@@ -116,8 +102,12 @@ void* udpOutputThread(void* args) {
 }
 
 
+
+// This function is called by the keyboard Thread to signal that 
+// there is something to put onto the list
+// and this function appends the message and changes the condition
 void output_signal_append_message(char* keyboardMessage){
-        // Lock the mutex before accessing the shared list
+
     pthread_mutex_lock(&sendListMutex);
     
     // Add the message to the end of sendList 
@@ -132,15 +122,16 @@ void output_signal_append_message(char* keyboardMessage){
 
 }
 
+// This function is called by the input Thread to signal that
+// this thread should not be blocked anymore when the shutdown signal is sent
 void output_condition_signal(){
     pthread_cond_signal(&sendListNotEmptyCond);
 }
 
 
-
+// initialization
 void output_thread_init(void *args)
 {
-
     sendList = List_create();
 
     pthread_mutex_init(&sendListMutex, NULL);
@@ -150,13 +141,12 @@ void output_thread_init(void *args)
 }
 
 
-
+// cleanup
+// make sure to cancel and join the thread before destroying the mutexes and conditions
+// this way the thread is not left running and the mutexes and conditions are not destroyed
 void output_thread_cleanup()
 {
-    // freeaddrinfo(res);
-
     pthread_cond_broadcast(&sendListNotEmptyCond);
-
 
     pthread_cancel(output_thread);
     pthread_join(output_thread, NULL);
