@@ -6,7 +6,7 @@ all: build
 build:
 	$(CC) $(CFLAGS) s-talk.c shutdown_manager/shutdown_manager.c \
 	list/list.c threads/input_thread.c threads/keyboard_thread.c \
-	threads/output_thread.c threads/screen_thread.c -o s-talk -lpthread
+	threads/output_thread.c threads/screen_thread.c socket.c -o s-talk -lpthread
 	
 clean:
 	rm -f s-talk

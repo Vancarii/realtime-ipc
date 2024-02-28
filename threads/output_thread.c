@@ -8,11 +8,12 @@
 #include <arpa/inet.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netdb.h> 
 #include "output_thread.h"
 #include "../list/list.h"
 #include "../shutdown_manager/shutdown_manager.h"
+#include <netdb.h>
 
+#include "../args_struct.h"
 
 static pthread_t output_thread;
 
@@ -22,13 +23,6 @@ static List *sendList;
 static pthread_mutex_t sendListMutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t sendListNotEmptyCond = PTHREAD_COND_INITIALIZER;
 
-typedef struct {
-    char *remoteHostname;
-    int remotePort;
-    int localPort;
-    int socket;
-    struct addrinfo *res;
-} thread_args;
 
 
 void* udpOutputThread(void* args) {
@@ -52,7 +46,14 @@ void* udpOutputThread(void* args) {
             pthread_cond_wait(&sendListNotEmptyCond, &sendListMutex);
         }
 
+        // Remove the most recently appended message from the list
         char* message = List_trim(sendList);
+
+        if (message == NULL) {
+            pthread_mutex_unlock(&sendListMutex);
+            perror("List_trim NULL");
+            continue;
+        }
     
         pthread_mutex_unlock(&sendListMutex);
 

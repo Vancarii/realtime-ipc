@@ -12,21 +12,12 @@
 #include "../list/list.h"
 #include "../shutdown_manager/shutdown_manager.h"
 
-#include <netdb.h>
-
 
 static pthread_t input_thread;
 
 static char* inputMessage = NULL;
 
-typedef struct {
-    char *remoteHostname;
-    int remotePort;
-    int localPort;
-    int socket;
-    struct addrinfo *res;
-    struct sockaddr_in cliaddr;
-} thread_args;
+#include "../args_struct.h"
 
 
 // All thread operations 
