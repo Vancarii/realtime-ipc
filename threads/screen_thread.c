@@ -74,7 +74,11 @@ void screen_signal_append_message(char* inputMessage) {
 // it should continue its process since we are shutting down and so that
 // this thread can check the shutdown condition
 void screen_condition_signal() {
+    pthread_mutex_lock(&receiveListMutex);
+
     pthread_cond_signal(&receiveListNotEmptyCond);
+
+    pthread_mutex_unlock(&receiveListMutex);
 }
 
 
@@ -82,9 +86,6 @@ void screen_condition_signal() {
 void screen_thread_init(){
 
     receiveList = List_create();
-
-    // pthread_mutex_init(&receiveListMutex, NULL);
-    // pthread_cond_init(&receiveListNotEmptyCond, NULL);
     
     pthread_create(&screen_thread, NULL, screenOutputThread, NULL);
 

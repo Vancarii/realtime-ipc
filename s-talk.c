@@ -12,6 +12,8 @@
 #include "threads/output_thread.h"
 #include "threads/screen_thread.h"
 #include "threads/input_thread.h"
+#include <netdb.h>
+
 
 
 // struct to store user input arguments
@@ -20,8 +22,59 @@ typedef struct {
     char *remoteHostname;
     int remotePort;
     int localPort;
+    int socket;
+    struct addrinfo *res;
 } thread_args;
 
+
+void socket_creation(thread_args* args){
+
+    int sockfd;
+
+    struct addrinfo hints;
+    struct addrinfo *res;
+
+    struct sockaddr_in servaddr;
+
+
+    int status;
+
+    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+        perror("socket creation failed");
+        exit(EXIT_FAILURE);
+    }
+
+    memset(&servaddr, 0, sizeof(servaddr));
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_DGRAM;
+
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = INADDR_ANY;
+
+    thread_args* arguments = (thread_args*)args;
+
+    servaddr.sin_port = htons(arguments->localPort);
+
+    // Binding the socket 
+    if (bind(sockfd, (const struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) {
+        perror("bind failed");
+        exit(EXIT_FAILURE);
+    }
+
+    char portStr[6];
+    sprintf(portStr, "%d", arguments->remotePort);
+
+    if ((status = getaddrinfo(arguments->remoteHostname, portStr, &hints, &res)) != 0) {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(status));
+        exit(EXIT_FAILURE);
+    }
+
+
+    arguments->socket = sockfd;
+    arguments->res = res;
+
+}
 
 
 int main(int argc, char *argv[]) {
@@ -39,6 +92,8 @@ int main(int argc, char *argv[]) {
     args->remoteHostname = argv[2];
     args->remotePort = atoi(argv[3]);
 
+
+    socket_creation(args);
 
     // initialize threads
 
@@ -63,11 +118,14 @@ int main(int argc, char *argv[]) {
     input_thread_cleanup();
     
 
-    // properly cleanup shutdown
-    cleanup_shutdown_manager();
 
     // free memory
+    freeaddrinfo(args->res);
+    close(args->socket);
     free(args);
+
+    // properly cleanup shutdown
+    cleanup_shutdown_manager();
 
     return 0;
 }

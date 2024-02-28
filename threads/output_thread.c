@@ -13,6 +13,7 @@
 #include "../list/list.h"
 #include "../shutdown_manager/shutdown_manager.h"
 
+
 static pthread_t output_thread;
 
 // list to be shared by UDP output and keyboard thread
@@ -25,35 +26,17 @@ typedef struct {
     char *remoteHostname;
     int remotePort;
     int localPort;
+    int socket;
+    struct addrinfo *res;
 } thread_args;
 
 
 void* udpOutputThread(void* args) {
-    int sockfd;
-
-    struct addrinfo hints;
-    struct addrinfo *res;
-
-    int status;
-
-    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-        perror("socket creation failed");
-        exit(EXIT_FAILURE);
-    }
-
-    memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_DGRAM;
 
     thread_args* arguments = (thread_args*)args;
 
-    char portStr[6];
-    sprintf(portStr, "%d", arguments->remotePort);
-
-    if ((status = getaddrinfo(arguments->remoteHostname, portStr, &hints, &res)) != 0) {
-        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(status));
-        exit(EXIT_FAILURE);
-    }
+    int sockfd = arguments->socket;
+    struct addrinfo *res = arguments->res;
 
     while (1) {
 
@@ -63,8 +46,6 @@ void* udpOutputThread(void* args) {
         while (sendList->head == NULL) {
 
             if (should_shutdown()){
-                freeaddrinfo(res);
-                close(sockfd);
                 return NULL;
             }
 
@@ -82,15 +63,14 @@ void* udpOutputThread(void* args) {
         // pointer in the keyboard thread file
         // so we free it here and not in keyboard file
         if (message != NULL) {
+
+
             sendto(sockfd, message, strlen(message), 0, res->ai_addr, res->ai_addrlen);
 
             free(message);
 
             // check for shutdown signal
-            // make sure to free allocated and close the socket if returning
             if (should_shutdown()){
-                freeaddrinfo(res);
-                close(sockfd);
                 return NULL;
             }
 
@@ -98,8 +78,6 @@ void* udpOutputThread(void* args) {
 
     }
 
-    freeaddrinfo(res);
-    close(sockfd);
     return NULL;
 }
 
@@ -127,7 +105,12 @@ void output_signal_append_message(char* keyboardMessage){
 // This function is called by the input Thread to signal that
 // this thread should not be blocked anymore when the shutdown signal is sent
 void output_condition_signal(){
+
+    pthread_mutex_lock(&sendListMutex);
+
     pthread_cond_signal(&sendListNotEmptyCond);
+
+    pthread_mutex_unlock(&sendListMutex);
 }
 
 
@@ -135,9 +118,6 @@ void output_condition_signal(){
 void output_thread_init(void *args)
 {
     sendList = List_create();
-
-    // pthread_mutex_init(&sendListMutex, NULL);
-    // pthread_cond_init(&sendListNotEmptyCond, NULL);
 
     pthread_create(&output_thread, NULL, udpOutputThread, args);
 }
@@ -158,15 +138,6 @@ void output_thread_cleanup()
     pthread_join(output_thread, NULL);
 
     List_free(sendList, free);
-    // pthread_cond_broadcast(&sendListNotEmptyCond);
 
-
-    // pthread_cancel(output_thread);
-    // pthread_join(output_thread, NULL);
-
-    // pthread_mutex_destroy(&sendListMutex);
-    // pthread_cond_destroy(&sendListNotEmptyCond);
-
-    // List_free(sendList, free);
 
 }

@@ -12,6 +12,8 @@
 #include "../list/list.h"
 #include "../shutdown_manager/shutdown_manager.h"
 
+#include <netdb.h>
+
 
 static pthread_t input_thread;
 
@@ -21,6 +23,9 @@ typedef struct {
     char *remoteHostname;
     int remotePort;
     int localPort;
+    int socket;
+    struct addrinfo *res;
+    struct sockaddr_in cliaddr;
 } thread_args;
 
 
@@ -30,33 +35,18 @@ typedef struct {
 // if the message is "!", the shutdown signal is sent
 // and the thread is terminated
 void* inputThread(void* args) {
-    int sockfd;
-    struct sockaddr_in servaddr, cliaddr;
 
-    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-        perror("socket creation failed");
-        exit(EXIT_FAILURE);
-    }
-
-    memset(&servaddr, 0, sizeof(servaddr));
-    memset(&cliaddr, 0, sizeof(cliaddr));
-
-    // Filling server information
-    servaddr.sin_family = AF_INET;
-    servaddr.sin_addr.s_addr = INADDR_ANY;
     thread_args* arguments = (thread_args*)args;
-    servaddr.sin_port = htons(arguments->localPort);
 
-    // Binding the socket 
-    if (bind(sockfd, (const struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) {
-        perror("bind failed");
-        exit(EXIT_FAILURE);
-    }
+    int sockfd = arguments->socket;
+
+    struct sockaddr_in cliaddr;
+    memset(&cliaddr, 0, sizeof(cliaddr));
+    socklen_t len = sizeof(cliaddr);
 
     while (1) {
 
         char buffer[1024];
-        socklen_t len = sizeof(cliaddr);
 
         int n = recvfrom(sockfd, (char *)buffer, 1024, 0, ( struct sockaddr *) &cliaddr, &len);
 
@@ -87,9 +77,9 @@ void* inputThread(void* args) {
             return NULL;
         }
 
-    }
+    }    // struct sockaddr_in cliaddr = arguments->cliaddr;
 
-    close(sockfd);
+
 
     return NULL;
 }
