@@ -9,8 +9,8 @@ static pthread_t screen_thread;
 // list to be shared by this thread and the UDP input Thread
 static List *receiveList;
 
-static pthread_mutex_t receiveListMutex;
-static pthread_cond_t receiveListNotEmptyCond;
+static pthread_mutex_t receiveListMutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t receiveListNotEmptyCond = PTHREAD_COND_INITIALIZER;
 
 
 void* screenOutputThread(void* unused) {
@@ -83,8 +83,8 @@ void screen_thread_init(){
 
     receiveList = List_create();
 
-    pthread_mutex_init(&receiveListMutex, NULL);
-    pthread_cond_init(&receiveListNotEmptyCond, NULL);
+    // pthread_mutex_init(&receiveListMutex, NULL);
+    // pthread_cond_init(&receiveListNotEmptyCond, NULL);
     
     pthread_create(&screen_thread, NULL, screenOutputThread, NULL);
 
@@ -93,11 +93,12 @@ void screen_thread_init(){
 // cleanup
 void screen_thread_cleanup(){
 
-    pthread_join(screen_thread, NULL);
 
     pthread_mutex_destroy(&receiveListMutex);
     pthread_cond_destroy(&receiveListNotEmptyCond);
 
+    pthread_join(screen_thread, NULL);
+    
     List_free(receiveList, free);
 
 }

@@ -18,8 +18,8 @@ static pthread_t output_thread;
 // list to be shared by UDP output and keyboard thread
 static List *sendList;
 
-static pthread_mutex_t sendListMutex;
-static pthread_cond_t sendListNotEmptyCond;
+static pthread_mutex_t sendListMutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t sendListNotEmptyCond = PTHREAD_COND_INITIALIZER;
 
 typedef struct {
     char *remoteHostname;
@@ -31,7 +31,9 @@ typedef struct {
 void* udpOutputThread(void* args) {
     int sockfd;
 
-    struct addrinfo hints, *res;
+    struct addrinfo hints;
+    struct addrinfo *res;
+
     int status;
 
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
@@ -134,8 +136,8 @@ void output_thread_init(void *args)
 {
     sendList = List_create();
 
-    pthread_mutex_init(&sendListMutex, NULL);
-    pthread_cond_init(&sendListNotEmptyCond, NULL);
+    // pthread_mutex_init(&sendListMutex, NULL);
+    // pthread_cond_init(&sendListNotEmptyCond, NULL);
 
     pthread_create(&output_thread, NULL, udpOutputThread, args);
 }
@@ -146,14 +148,25 @@ void output_thread_init(void *args)
 // this way the thread is not left running and the mutexes and conditions are not destroyed
 void output_thread_cleanup()
 {
-    pthread_cond_broadcast(&sendListNotEmptyCond);
 
-    pthread_cancel(output_thread);
-    pthread_join(output_thread, NULL);
 
     pthread_mutex_destroy(&sendListMutex);
     pthread_cond_destroy(&sendListNotEmptyCond);
 
+
+    pthread_cancel(output_thread);
+    pthread_join(output_thread, NULL);
+
     List_free(sendList, free);
+    // pthread_cond_broadcast(&sendListNotEmptyCond);
+
+
+    // pthread_cancel(output_thread);
+    // pthread_join(output_thread, NULL);
+
+    // pthread_mutex_destroy(&sendListMutex);
+    // pthread_cond_destroy(&sendListNotEmptyCond);
+
+    // List_free(sendList, free);
 
 }
