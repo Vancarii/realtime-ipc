@@ -445,7 +445,7 @@ void List_concat(List* pList1, List* pList2){
 // It should be invoked (within List_free) as: (*pItemFreeFn)(itemToBeFreedFromNode);
 // pList and all its nodes no longer exists after the operation; its head and nodes are 
 // available for future operations.
-typedef void (*FREE_FN)(void* pItem);
+// typedef void (*FREE_FN)(void* pItem);
 void List_free(List* pList, FREE_FN pItemFreeFn){
     assert(pList != NULL);
 
@@ -497,7 +497,7 @@ void List_free(List* pList, FREE_FN pItemFreeFn){
 // 
 // If the current pointer is before the start of the pList, then start searching from
 // the first node in the list (if any).
-typedef bool (*COMPARATOR_FN)(void* pItem, void* pComparisonArg);
+// typedef bool (*COMPARATOR_FN)(void* pItem, void* pComparisonArg);
 void* List_search(List* pList, COMPARATOR_FN pComparator, void* pComparisonArg){
     assert(pList != NULL);
 
